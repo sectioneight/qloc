@@ -8,10 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
-	"strconv"
 	"strings"
-	"sync/atomic"
-	"time"
 )
 
 var (
@@ -39,27 +36,17 @@ func main() {
 		*exts = "," + *exts + ","
 	}
 
-	var progress int64
-	fmtprogress := func() string {
-		v := atomic.LoadInt64(&progress)
-		return "    files " + strconv.Itoa(int(v))
-	}
-
 	work := make(chan string, 100)
 	results := make(chan CountByExt, *procs)
 	go IterateDir(path, work)
 
 	for i := 0; i < *procs; i++ {
-		go FileWorker(work, results, &progress)
+		go FileWorker(work, results)
 	}
 
 	total := make(CountByExt)
 	for N := *procs; N > 0; {
 		select {
-		case <-time.After(100 * time.Millisecond):
-			line := fmtprogress()
-			backspace := strings.Repeat("\r", len(line))
-			fmt.Print(line, backspace)
 		case result := <-results:
 			for _, s := range result {
 				total.Add(s)
@@ -67,7 +54,6 @@ func main() {
 			N--
 		}
 	}
-	fmt.Println(fmtprogress())
 	fmt.Println()
 
 	counts := make(Counts, 0, len(total))
@@ -76,19 +62,21 @@ func main() {
 	}
 	sort.Sort(ByCode{counts})
 
-	summary := Count{}
-
-	fmt.Printf("%-12s %12s %12s %12s %12s\n", "extension", "files", "binary", "blank", "code")
-	fmt.Println(strings.Repeat("-", 12*5+4))
+	// fmt.Printf("%-12s %12s %12s %12s %12s\n", "extension", "files", "binary", "blank", "code")
+	fmt.Printf("path")
 	for _, count := range counts {
-		summary.Add(count)
-		fmt.Printf("%-12s %12d %12d %12d %12d\n", count.Ext, count.Files, count.Binary, count.Blank, count.Code)
+		fmt.Printf(", %s files, %s code, %s blank", count.Ext, count.Ext, count.Ext)
 	}
-	fmt.Println(strings.Repeat("-", 12*5+4))
-	fmt.Printf("%-12s %12d %12d %12d %12d\n", "summary", summary.Files, summary.Binary, summary.Blank, summary.Code)
+	fmt.Printf("\n")
+
+	fmt.Printf(path)
+	for _, count := range counts {
+		fmt.Printf(", %12d, %12d, %12d", count.Files, count.Code, count.Blank)
+	}
+	fmt.Printf("\n")
 }
 
-func FileWorker(files chan string, result chan CountByExt, progress *int64) {
+func FileWorker(files chan string, result chan CountByExt) {
 	total := make(CountByExt)
 	defer func() { result <- total }()
 
@@ -98,7 +86,6 @@ func FileWorker(files chan string, result chan CountByExt, progress *int64) {
 			continue
 		}
 		total.Add(count)
-		atomic.AddInt64(progress, 1)
 	}
 }
 
