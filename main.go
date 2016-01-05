@@ -71,7 +71,7 @@ func main() {
 
 	fmt.Printf(path)
 	for _, count := range counts {
-		fmt.Printf(", %12d, %12d, %12d", count.Files, count.Code, count.Blank)
+		fmt.Printf(", %d, %d, %d", count.Files, count.Code, count.Blank)
 	}
 	fmt.Printf("\n")
 }
