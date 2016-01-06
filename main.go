@@ -32,6 +32,9 @@ func main() {
 		path = "."
 	}
 
+	se := strings.Split(*exts, ",")
+	sort.Sort(sort.StringSlice(se))
+
 	if *exts != "" {
 		*exts = "," + *exts + ","
 	}
@@ -60,18 +63,25 @@ func main() {
 	for _, c := range total {
 		counts = append(counts, c)
 	}
-	sort.Sort(ByCode{counts})
+	sort.Sort(ByExt{counts})
 
-	// fmt.Printf("%-12s %12s %12s %12s %12s\n", "extension", "files", "binary", "blank", "code")
-	fmt.Printf("path")
+	byExt := make(map[string]*Count, len(counts))
 	for _, count := range counts {
-		fmt.Printf(", %s files, %s code, %s blank", count.Ext, count.Ext, count.Ext)
+		byExt[count.Ext] = count
+	}
+	fmt.Printf("path")
+	for _, ext := range se {
+		fmt.Printf(", %s files, %s code, %s blank", ext, ext, ext)
 	}
 	fmt.Printf("\n")
 
 	fmt.Printf(path)
-	for _, count := range counts {
-		fmt.Printf(", %d, %d, %d", count.Files, count.Code, count.Blank)
+	for _, ext := range se {
+		if count, ok := byExt[ext]; ok {
+			fmt.Printf(", %d, %d, %d", count.Files, count.Code, count.Blank)
+		} else {
+			fmt.Printf(", 0, 0, 0")
+		}
 	}
 	fmt.Printf("\n")
 }
